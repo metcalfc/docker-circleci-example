@@ -3,20 +3,21 @@
 # https://docs.docker.com/develop/develop-images/build_enhancements/#to-enable-buildkit-builds
 export DOCKER_BUILDKIT=1
 
-GIT_TAG?=$(shell git describe --tags --match "v[0-9]*" 2> /dev/null)
+GIT_TAG?=$(shell git rev-parse --short HEAD)
 ifeq ($(GIT_TAG),)
 	GIT_TAG=edge
 endif
 
 # Docker image tagging:
-HUB_USER?=${USER}
+HUB_USER?=metcalfc
 
 # When you create your secret use the DockerHub in the name and this will find it
 HUB_PULL_SECRET?=$(shell docker secret list | grep arn | grep DockerHub | cut -f1 -d' ')
-REPO?=$(shell basename ${PWD})
+REPO?=docker-circleci-example
 TAG?=${GIT_TAG}
 DEV_IMAGE?=${REPO}:latest
 PROD_IMAGE?=${HUB_USER}/${REPO}:${TAG}
+BUILDX_PLATFORMS?=linux/amd64,linux/arm64,linux/riscv64,linux/ppc64le,linux/s390x,linux/386,linux/arm/v7,linux/arm/v6
 
 # Local development happens here!
 # This starts your application and bind mounts the source into the container so
@@ -42,16 +43,21 @@ build:
 
 # Push the production image to a registry.
 .PHONY: push
-push: build
+push:
 	@docker --context default push ${PROD_IMAGE}
 
-# Run the production image either via compose or run
-.PHONY: deploy run
+# Run the production image locally
+.PHONY: deploy run logs down
+run:
+	PROD_IMAGE=${PROD_IMAGE} docker-compose -f docker-compose.yml up -d
+logs:
+	PROD_IMAGE=${PROD_IMAGE} docker-compose -f docker-compose.yml logs
+down:
+	PROD_IMAGE=${PROD_IMAGE} docker-compose -f docker-compose.yml down
+
+# Run the production image either via aci or ecs
 deploy: build push check-env
 	HUB_PULL_SECRET=${HUB_PULL_SECRET} PROD_IMAGE=${PROD_IMAGE} docker compose up
-
-run: build
-	@docker --context default run -d -p 5000:5000 ${PROD_IMAGE}
 
 # Remove the dev container, dev image, test image, and clear the builder cache.
 .PHONY: clean
@@ -65,3 +71,8 @@ check-env:
 ifndef HUB_PULL_SECRET
 	$(error HUB_PULL_SECRET is undefined. Use docker ecs secret ls to find the ARN)
 endif
+
+.PHONY: cross-build
+cross-build:
+	@docker buildx create --name mybuilder --use
+	@docker buildx build --platform ${BUILDX_PLATFORMS} -t ${PROD_IMAGE} --push ./app
