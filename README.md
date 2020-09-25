@@ -9,7 +9,7 @@ deployed in Docker containers using Dockerfiles and Docker Compose.
 We want to setup CI to test:
 
 - ✒ Every commit to `main`
-- ✉ Every PR]
+- ✉ Every PR
 - 🌃 Integration tests nightly
 - 🐳 Releases via tags pushed to Docker Hub.
 
