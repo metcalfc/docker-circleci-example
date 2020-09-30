@@ -1,4 +1,4 @@
-# Docker GitHub Action Example
+# Docker CircleCI Example
 
 Welcome. This is a simple example application to show a common Docker specific
 CircleCI setup. We have a Python Flask application that is built and
