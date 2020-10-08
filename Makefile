@@ -9,11 +9,11 @@ ifeq ($(GIT_TAG),)
 endif
 
 # Docker image tagging:
-HUB_USER?=$(shell echo $DOCKER_USER)
+HUB_USER?=$(shell echo ${DOCKER_USER})
 
 # When you create your secret use the DockerHub in the name and this will find it
 HUB_PULL_SECRET?=$(shell docker secret list | grep arn | grep DockerHub | cut -f1 -d' ')
-REPO?=$(shell echo $CIRCLE_PROJECT_REPONAME)
+REPO?=$(shell echo ${CIRCLE_PROJECT_REPONAME})
 TAG?=${GIT_TAG}
 DEV_IMAGE?=${REPO}:latest
 PROD_IMAGE?=${HUB_USER}/${REPO}:${TAG}
